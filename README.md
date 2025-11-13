@@ -36,6 +36,8 @@ The wizard renders one question at a time, skipping hidden or already-answered q
 - Input field updates stored values live.
 - Sidebar lists all visible questions with answered/unanswered status.
 - Skip button to advance without answering.
+- LocalStorage persistence: answers are saved automatically and restored on reload.
+- Reset Answers button: clears all saved answers and restarts the wizard.
 - Completion state when all visible questions are answered.
 
 ---
