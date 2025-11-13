@@ -63,3 +63,6 @@ export const application = {
     },
   ],
 } as const;
+
+export type Application = typeof application;
+export type QuestionRef = { id: string; hide: boolean; path: { formId: string; sectionId: string } };
