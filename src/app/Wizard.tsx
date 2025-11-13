@@ -14,7 +14,15 @@ type Values = Record<string, unknown>;
 
 export function Wizard() {
   const questions = useMemo(() => flattenVisibleQuestions(application), []);
-  const [values, setValues] = useState<Values>({ ...application.values });
+  function loadValues(): Record<string, unknown> {
+    try {
+      const raw = localStorage.getItem('wizard-values');
+      return raw ? JSON.parse(raw) : { ...application.values };
+    } catch {
+      return { ...application.values };
+    }
+  }
+  const [values, setValues] = useState<Values>(() => loadValues());
   const [index, setIndex] = useState<number | null>(() => firstUnansweredIndex(questions, values));
 
   useEffect(() => {
@@ -32,6 +40,29 @@ export function Wizard() {
 
   const complete = isComplete(questions, values);
 
+  function saveValues(values: Record<string, unknown>) {
+    try {
+      localStorage.setItem('wizard-values', JSON.stringify(values));
+    } catch {
+    }
+  }
+
+  function resetValues() {
+    try {
+      localStorage.removeItem('wizard-values');
+    } catch {
+      // ignore
+    }
+    return { ...application.values };
+  }
+  function handleReset() {
+    const initial = resetValues();
+    setValues(initial);
+    setIndex(firstUnansweredIndex(questions, initial));
+  }
+  useEffect(() => {
+    saveValues(values);
+  }, [values]);
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     if (index === null) return;
     const qId = questions[index].id;
@@ -86,53 +117,57 @@ export function Wizard() {
       </div>
     );
   }
-  
   // Decide whether to use input or textarea based on current value length
   const q = index !== null ? questions[index] : null;
   const currentValue = q ? (values[q.id] as string) ?? '' : '';
 
   return (
-    <div style={{ display: 'flex', gap: 24, padding: 24 }}>
-      <div style={{ flex: 1 }}>
-        {q && (
-          <>
-            <h2>Question {index! + 1} of {questions.length}</h2>
-            <p><strong>ID:</strong> {q.id}</p>
+    <div>
+      <div style={{ display: 'flex', gap: 24, padding: 24 }}>
+        <div style={{ flex: 2 }}>
+          {q && (
+            <>
+              <h2>Question {index! + 1} of {questions.length}</h2>
+              <p><strong>ID:</strong> {q.id}</p>
 
-            <label style={{ display: 'block', marginTop: 12 }}>
-              <span style={{ display: 'block', marginBottom: 8 }}>Answer:</span>
-              {currentValue.length > 80 ? (
-                <textarea
-                  value={currentValue}
-                  onChange={handleInputChange}
-                  rows={4}
-                  style={{ padding: 8, width: '100%' }}
-                  placeholder="Type your longer answer..."
-                />
-              ) : (
-                <input
-                  value={currentValue}
-                  onChange={handleInputChange}
-                  style={{ padding: 8, width: '100%' }}
-                  placeholder="Type your answer..."
-                />
-              )}
-            </label>
-          </>
-        )}
+              <label style={{ display: 'block', marginTop: 12 }}>
+                <span style={{ display: 'block', marginBottom: 8 }}>Answer:</span>
+                {currentValue.length > 80 ? (
+                  <textarea
+                    value={currentValue}
+                    onChange={handleInputChange}
+                    rows={4}
+                    style={{ padding: 8, width: '100%' }}
+                    placeholder="Type your longer answer..."
+                  />
+                ) : (
+                  <input
+                    value={currentValue}
+                    onChange={handleInputChange}
+                    style={{ padding: 8, width: '100%' }}
+                    placeholder="Type your answer..."
+                  />
+                )}
+              </label>
+            </>
+          )}
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-          <button onClick={handlePrev} disabled={prevUnansweredIndex(questions, values, index) === null}>
-            Previous
-          </button>
-          <button onClick={handleNext} disabled={nextUnansweredIndex(questions, values, index) === null}>
-            Next
-          </button>
-          <button onClick={handleSkip}>Skip</button>
+          <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+            <button onClick={handlePrev} disabled={prevUnansweredIndex(questions, values, index) === null}>
+              Previous
+            </button>
+            <button onClick={handleNext} disabled={nextUnansweredIndex(questions, values, index) === null}>
+              Next
+            </button>
+            <button onClick={handleSkip}>Skip</button>
+          </div>
         </div>
-      </div>
 
-      <Sidebar questions={questions} values={values} currentIndex={index} onJump={setIndex} />
+        <Sidebar questions={questions} values={values} currentIndex={index} onJump={setIndex} />
+      </div>
+      <button onClick={handleReset} style={{ padding: '24px', color: '#c00' }}>
+        Reset Answers
+      </button>
     </div>
   );
 }
